@@ -1,0 +1,31 @@
+{
+  "name": "treasury-monitoring-services",
+  "version": "1.0.0",
+  "description": "Circle Gateway and Payroll Automation services for Treasury Management",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "automation": "node automationRunner.js",
+    "demo": "node demo.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "ethers": "^5.7.2",
+    "node-cron": "^3.0.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "treasury",
+    "circle-gateway",
+    "payroll",
+    "automation",
+    "blockchain"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+
