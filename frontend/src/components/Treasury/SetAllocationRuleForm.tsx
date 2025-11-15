@@ -1,24 +1,28 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import React, { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useAccount, useContractWrite, usePrepareContractWrite } from 'wagmi';
 import { parseUnits } from 'viem';
 import { TREASURY_ABI, TREASURY_CONTRACT_ADDRESS } from '../../constants/treasury';
 
-const CARD_STYLES = 'rounded-3xl border border-slate-100 bg-white shadow-md shadow-slate-100';
-const LABEL_STYLES = 'text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500';
+const CARD_STYLES =
+  'rounded-3xl border border-slate-100 bg-white shadow-md shadow-slate-100';
+const LABEL_STYLES =
+  'text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500';
 const INPUT_STYLES =
   'w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100';
 
 export const SetAllocationRuleForm = () => {
   const [recipientAddress, setRecipientAddress] = useState('');
   const [usdcAmount, setUsdcAmount] = useState('');
-  const [frequencyDays, setFrequencyDays] = useState('');
+  const [cooldownDays, setCooldownDays] = useState('');
+  const [budgetLimit, setBudgetLimit] = useState('0');
+  const [priority, setPriority] = useState('1');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const { address } = useAccount();
 
   const isDisabled = useMemo(
-    () => !recipientAddress || !usdcAmount || !frequencyDays,
-    [recipientAddress, usdcAmount, frequencyDays]
+    () => !recipientAddress || !usdcAmount || !cooldownDays,
+    [recipientAddress, usdcAmount, cooldownDays]
   );
 
   const usdcAmountRaw = useMemo(() => {
@@ -29,20 +33,39 @@ export const SetAllocationRuleForm = () => {
     }
   }, [usdcAmount]);
 
+  const budgetLimitRaw = useMemo(() => {
+    try {
+      return budgetLimit ? parseUnits(budgetLimit, 6) : parseUnits('0', 6);
+    } catch {
+      return undefined;
+    }
+  }, [budgetLimit]);
+
+  const priorityValue = useMemo(() => {
+    if (!priority) return undefined;
+    const numeric = Number(priority);
+    if (Number.isNaN(numeric) || numeric <= 0) return undefined;
+    return BigInt(numeric);
+  }, [priority]);
+
   const frequencySeconds = useMemo(() => {
-    if (!frequencyDays) return undefined;
-    const daysNumber = Number(frequencyDays);
+    if (!cooldownDays) return undefined;
+    const daysNumber = Number(cooldownDays);
     if (Number.isNaN(daysNumber) || daysNumber <= 0) return undefined;
     return BigInt(daysNumber) * BigInt(86400);
-  }, [frequencyDays]);
+  }, [cooldownDays]);
 
   const { config } = usePrepareContractWrite({
     address: TREASURY_CONTRACT_ADDRESS,
     abi: TREASURY_ABI,
     functionName: 'setAllocationRule',
     args:
-      recipientAddress && usdcAmountRaw !== undefined && frequencySeconds !== undefined
-        ? [recipientAddress as `0x${string}`, 1, usdcAmountRaw, BigInt(0), 1, frequencySeconds]
+      recipientAddress &&
+      usdcAmountRaw !== undefined &&
+      frequencySeconds !== undefined &&
+      budgetLimitRaw !== undefined &&
+      priorityValue !== undefined
+        ? [recipientAddress as `0x${string}`, 1, usdcAmountRaw, budgetLimitRaw, priorityValue, frequencySeconds]
         : undefined,
     enabled: !isDisabled && !!address
   });
@@ -51,14 +74,16 @@ export const SetAllocationRuleForm = () => {
     ...config,
     onMutate: () => setStatusMessage('Transaction pending...'),
     onSuccess: () => setStatusMessage('Success! Rule submitted to Arc.'),
-    onError: (error) => setStatusMessage(error.message)
+    onError: (error: Error) => setStatusMessage(error.message)
   });
 
   useEffect(() => {
     if (isSuccess) {
       setRecipientAddress('');
       setUsdcAmount('');
-      setFrequencyDays('');
+      setCooldownDays('');
+      setBudgetLimit('0');
+      setPriority('1');
       setTxHash(data?.hash ?? null);
     }
   }, [isSuccess, data]);
@@ -117,8 +142,36 @@ export const SetAllocationRuleForm = () => {
             type="number"
             min="1"
             placeholder="e.g., 30"
-            value={frequencyDays}
-            onChange={(e) => setFrequencyDays(e.target.value)}
+            value={cooldownDays}
+            onChange={(e) => setCooldownDays(e.target.value)}
+            className={INPUT_STYLES}
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-600">Budget Limit (USDC)</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            value={budgetLimit}
+            onChange={(e) => setBudgetLimit(e.target.value)}
+            className={INPUT_STYLES}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-600">Priority</label>
+          <input
+            type="number"
+            min="1"
+            max="10"
+            placeholder="1"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
             className={INPUT_STYLES}
           />
         </div>
