@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useAccount, useContractWrite, usePrepareContractWrite } from 'wagmi';
 import { parseUnits } from 'viem';
 import { TREASURY_ABI, TREASURY_CONTRACT_ADDRESS } from '../../constants/treasury';
@@ -8,6 +8,7 @@ export const SetAllocationRuleForm = () => {
   const [usdcAmount, setUsdcAmount] = useState('');
   const [frequencyDays, setFrequencyDays] = useState('');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
   const { address } = useAccount();
 
   const isDisabled = useMemo(
@@ -27,7 +28,7 @@ export const SetAllocationRuleForm = () => {
     if (!frequencyDays) return undefined;
     const daysNumber = Number(frequencyDays);
     if (Number.isNaN(daysNumber) || daysNumber <= 0) return undefined;
-    return BigInt(daysNumber * 86400);
+    return BigInt(daysNumber) * BigInt(86400);
   }, [frequencyDays]);
 
   const { config } = usePrepareContractWrite({
@@ -41,12 +42,21 @@ export const SetAllocationRuleForm = () => {
     enabled: !isDisabled && !!address
   });
 
-  const { write, isLoading: isWriting, isSuccess, isError } = useContractWrite({
+  const { write, isLoading: isWriting, isSuccess, isError, data } = useContractWrite({
     ...config,
     onMutate: () => setStatusMessage('Transaction pending...'),
     onSuccess: () => setStatusMessage('Success! Rule submitted to Arc.'),
     onError: (error) => setStatusMessage(error.message)
   });
+
+  useEffect(() => {
+    if (isSuccess) {
+      setRecipientAddress('');
+      setUsdcAmount('');
+      setFrequencyDays('');
+      setTxHash(data?.hash ?? null);
+    }
+  }, [isSuccess, data]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -119,7 +129,19 @@ export const SetAllocationRuleForm = () => {
         </p>
       )}
       {isSuccess && (
-        <p className="text-center text-sm font-semibold text-emerald-600">Transaction confirmed on Arc!</p>
+        <div className="space-y-1 text-center text-sm text-slate-500">
+          <p className="font-semibold text-emerald-600">Transaction confirmed on Arc!</p>
+          {txHash && (
+            <a
+              href={`https://testnet.arcscan.app/tx/${txHash}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-indigo-600 underline"
+            >
+              View on ArcScan
+            </a>
+          )}
+        </div>
       )}
     </form>
   );
