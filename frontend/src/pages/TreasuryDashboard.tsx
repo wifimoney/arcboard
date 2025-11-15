@@ -1,6 +1,7 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { useMemo } from 'react';
 import { useAggregatedBalance } from '../hooks/useAggregatedBalance';
+import { SetAllocationRuleForm } from '../components/Treasury/SetAllocationRuleForm';
 
 export const TreasuryDashboard = () => {
   const { address, isConnecting } = useAccount();
@@ -67,24 +68,7 @@ export const TreasuryDashboard = () => {
             </p>
           </article>
 
-          <article className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Automation</p>
-                <h2 className="mt-3 text-2xl font-semibold text-slate-900">Set Allocation Rule</h2>
-              </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
-                Coming Soon
-              </span>
-            </div>
-            <p className="mt-4 text-sm text-slate-500">
-              The “Set Rule” form will live here, allowing operators to define predictable Arc distributions with a
-              single click.
-            </p>
-            <button className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-              Set Rule
-            </button>
-          </article>
+          <SetAllocationRuleForm />
         </section>
       </div>
     </main>
